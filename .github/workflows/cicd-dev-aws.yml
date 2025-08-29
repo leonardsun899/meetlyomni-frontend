@@ -1,0 +1,72 @@
+name: CICD-dev-AWS
+
+on:
+#   pull_request:
+#     branches: [ "dev","devops/leonard" ]
+#   push:
+#     branches: [ "dev","devops/leonard" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present
+        continue-on-error: true
+        env:
+          CI: true
+
+      - name: Build
+        run: npm run build
+
+  deploy-dev:
+   
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Amplify build via webhook (dev)
+        env:
+          AMPLIFY_DEV_WEBHOOK_URL: ${{ secrets.AMPLIFY_DEV_WEBHOOK_URL }}
+        shell: bash
+        run: |
+          if [[ -z "${AMPLIFY_DEV_WEBHOOK_URL}" ]]; then
+            echo "Missing secret: AMPLIFY_DEV_WEBHOOK_URL"; exit 1
+          fi
+
+          echo "Calling Amplify webhook..."
+        
+          for i in 1 2 3 4 5; do
+            HTTP_CODE=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" -X POST "${AMPLIFY_DEV_WEBHOOK_URL}") || true
+            echo "HTTP ${HTTP_CODE}"
+            if [[ "${HTTP_CODE}" =~ ^20[0-9]$ ]]; then
+              echo "Webhook accepted."
+              break
+            fi
+            sleep $((2 ** i))
+          done
+
+       
+          if ! [[ "${HTTP_CODE}" =~ ^20[0-9]$ ]]; then
+            echo "Amplify webhook call failed. Response:"
+            cat /tmp/resp.txt || true
+            exit 1
+          fi
