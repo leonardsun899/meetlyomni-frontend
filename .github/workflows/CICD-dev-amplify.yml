@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Trigger Amplify build via webhook (dev)
         env:
-          AMPLIFY_DEV_WEBHOOK_URL: ${{ secrets.AMPLIFY_DEV_WEBHOOK_URL }}
+          AMPLIFY_DEV_WEBHOOK_URL: https://webhooks.amplify.ap-southeast-2.amazonaws.com/prod/webhooks?id=6c63516a-4dbd-4d10-9950-b9ff21df8a06&token=GO7QV8FX3eZCEa8NZi3zxLZVXaGzWoKPepjPAFAg08Y
         shell: bash
         run: |
           if [[ -z "${AMPLIFY_DEV_WEBHOOK_URL}" ]]; then
