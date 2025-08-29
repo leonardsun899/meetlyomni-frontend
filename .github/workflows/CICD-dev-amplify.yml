@@ -39,7 +39,7 @@ jobs:
 
   deploy-dev:
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     needs: ci
     runs-on: ubuntu-latest
     steps:
